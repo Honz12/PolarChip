@@ -71,11 +71,24 @@ typedef struct {
     bool interrupts_enabled;
 } CpuData;
 
+uint8_t cpu_ram_get_value8(CpuData *cpu_data, uint32_t pointer) {
+    if (pointer >= cpu_data->ram_size) return 0;
+    return cpu_data->ram[pointer];
+}
+
+uint16_t cpu_ram_get_value16(CpuData *cpu_data, uint32_t pointer) {
+    if (pointer + 1 >= cpu_data->ram_size) return 0;
+    return cpu_data->ram[pointer] | cpu_data->ram[pointer + 1] << 8;
+}
+
 uint32_t cpu_ram_get_value24(CpuData *cpu_data, uint32_t pointer) {
     if (pointer + 2 >= cpu_data->ram_size) return 0;
-    return (cpu_data->ram[pointer] | 
-           (cpu_data->ram[pointer + 1] << 8) | 
-           (cpu_data->ram[pointer + 2] << 16)) & 0xFFFFFF;
+    return cpu_data->ram[pointer] | cpu_data->ram[pointer + 1] << 8 | cpu_data->ram[pointer + 2] << 16;
+}
+
+uint32_t cpu_ram_get_value32(CpuData *cpu_data, uint32_t pointer) {
+    if (pointer + 3 >= cpu_data->ram_size) return 0;
+    return cpu_data->ram[pointer] | cpu_data->ram[pointer + 1] << 8 | cpu_data->ram[pointer + 2] << 16 | cpu_data->ram[pointer + 3] << 24;
 }
 
 int init_cpu_sub(CpuData *cpu_data) {
