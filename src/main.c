@@ -91,6 +91,32 @@ uint32_t cpu_ram_get_value32(CpuData *cpu_data, uint32_t pointer) {
     return cpu_data->ram[pointer] | cpu_data->ram[pointer + 1] << 8 | cpu_data->ram[pointer + 2] << 16 | cpu_data->ram[pointer + 3] << 24;
 }
 
+void cpu_ram_write_value8(CpuData *cpu_data, uint32_t pointer, uint8_t value) {
+    if (pointer >= cpu_data->ram_size) return;
+    cpu_data->ram[pointer] = value;
+}
+
+void cpu_ram_write_value16(CpuData *cpu_data, uint32_t pointer, uint16_t value) {
+    if (pointer + 1 >= cpu_data->ram_size) return;
+    cpu_data->ram[pointer] = (uint8_t)value;
+    cpu_data->ram[pointer + 1] = (uint8_t)(value >> 8);
+}
+
+void cpu_ram_write_value24(CpuData *cpu_data, uint32_t pointer, uint32_t value) {
+    if (pointer + 2 >= cpu_data->ram_size) return;
+    cpu_data->ram[pointer] = (uint8_t)value;
+    cpu_data->ram[pointer + 1] = (uint8_t)(value >> 8);
+    cpu_data->ram[pointer + 2] = (uint8_t)(value >> 16);
+}
+
+void cpu_ram_write_value32(CpuData *cpu_data, uint32_t pointer, uint32_t value) {
+    if (pointer + 3 >= cpu_data->ram_size) return;
+    cpu_data->ram[pointer] = (uint8_t)value;
+    cpu_data->ram[pointer + 1] = (uint8_t)(value >> 8);
+    cpu_data->ram[pointer + 2] = (uint8_t)(value >> 16);
+    cpu_data->ram[pointer + 3] = (uint8_t)(value >> 24);
+}
+
 int init_cpu_sub(CpuData *cpu_data) {
     char ram_size_str[32];
 
