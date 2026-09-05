@@ -4,7 +4,7 @@ CC=gcc
 
 .PHONY: run
 
-$(BUILD_DIR)/main.exe: $(BUILD_DIR) $(SRC_DIR)/main.c
+$(BUILD_DIR)/main.exe: $(BUILD_DIR) $(SRC_DIR)/main.c $(SRC_DIR)/instruction_defines.h
 	$(CC) $(SRC_DIR)/main.c -o $(BUILD_DIR)/main.exe
 
 $(BUILD_DIR):

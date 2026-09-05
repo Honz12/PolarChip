@@ -69,55 +69,63 @@ typedef struct {
 
     bool running;
     bool interrupts_enabled;
-} CpuData;
+} ChipData;
 
-uint8_t cpu_ram_get_value8(CpuData *cpu_data, uint32_t pointer) {
-    if (pointer >= cpu_data->ram_size) return 0;
-    return cpu_data->ram[pointer];
+void dump_chip_data(ChipData *chip_data) {
+    printf("CHIP PC: %u\n", chip_data->pc);
+    printf("CHIP SP: %u\n", chip_data->sp);
+    printf("CHIP RAM SIZE: %u\n", chip_data->ram_size);
+    printf("CHIP RUNNING: %s\n", chip_data->running ? "true" : "false");
+    printf("CHIP INTE: %s\n", chip_data->interrupts_enabled ? "true" : "false");
 }
 
-uint16_t cpu_ram_get_value16(CpuData *cpu_data, uint32_t pointer) {
-    if (pointer + 1 >= cpu_data->ram_size) return 0;
-    return cpu_data->ram[pointer] | cpu_data->ram[pointer + 1] << 8;
+uint8_t chip_ram_get_value8(ChipData *chip_data, uint32_t pointer) {
+    if (pointer >= chip_data->ram_size) return 0;
+    return chip_data->ram[pointer];
 }
 
-uint32_t cpu_ram_get_value24(CpuData *cpu_data, uint32_t pointer) {
-    if (pointer + 2 >= cpu_data->ram_size) return 0;
-    return cpu_data->ram[pointer] | cpu_data->ram[pointer + 1] << 8 | cpu_data->ram[pointer + 2] << 16;
+uint16_t chip_ram_get_value16(ChipData *chip_data, uint32_t pointer) {
+    if (pointer + 1 >= chip_data->ram_size) return 0;
+    return chip_data->ram[pointer] | chip_data->ram[pointer + 1] << 8;
 }
 
-uint32_t cpu_ram_get_value32(CpuData *cpu_data, uint32_t pointer) {
-    if (pointer + 3 >= cpu_data->ram_size) return 0;
-    return cpu_data->ram[pointer] | cpu_data->ram[pointer + 1] << 8 | cpu_data->ram[pointer + 2] << 16 | cpu_data->ram[pointer + 3] << 24;
+uint32_t chip_ram_get_value24(ChipData *chip_data, uint32_t pointer) {
+    if (pointer + 2 >= chip_data->ram_size) return 0;
+    return chip_data->ram[pointer] | chip_data->ram[pointer + 1] << 8 | chip_data->ram[pointer + 2] << 16;
 }
 
-void cpu_ram_write_value8(CpuData *cpu_data, uint32_t pointer, uint8_t value) {
-    if (pointer >= cpu_data->ram_size) return;
-    cpu_data->ram[pointer] = value;
+uint32_t chip_ram_get_value32(ChipData *chip_data, uint32_t pointer) {
+    if (pointer + 3 >= chip_data->ram_size) return 0;
+    return chip_data->ram[pointer] | chip_data->ram[pointer + 1] << 8 | chip_data->ram[pointer + 2] << 16 | chip_data->ram[pointer + 3] << 24;
 }
 
-void cpu_ram_write_value16(CpuData *cpu_data, uint32_t pointer, uint16_t value) {
-    if (pointer + 1 >= cpu_data->ram_size) return;
-    cpu_data->ram[pointer] = (uint8_t)value;
-    cpu_data->ram[pointer + 1] = (uint8_t)(value >> 8);
+void chip_ram_write_value8(ChipData *chip_data, uint32_t pointer, uint8_t value) {
+    if (pointer >= chip_data->ram_size) return;
+    chip_data->ram[pointer] = value;
 }
 
-void cpu_ram_write_value24(CpuData *cpu_data, uint32_t pointer, uint32_t value) {
-    if (pointer + 2 >= cpu_data->ram_size) return;
-    cpu_data->ram[pointer] = (uint8_t)value;
-    cpu_data->ram[pointer + 1] = (uint8_t)(value >> 8);
-    cpu_data->ram[pointer + 2] = (uint8_t)(value >> 16);
+void chip_ram_write_value16(ChipData *chip_data, uint32_t pointer, uint16_t value) {
+    if (pointer + 1 >= chip_data->ram_size) return;
+    chip_data->ram[pointer] = (uint8_t)value;
+    chip_data->ram[pointer + 1] = (uint8_t)(value >> 8);
 }
 
-void cpu_ram_write_value32(CpuData *cpu_data, uint32_t pointer, uint32_t value) {
-    if (pointer + 3 >= cpu_data->ram_size) return;
-    cpu_data->ram[pointer] = (uint8_t)value;
-    cpu_data->ram[pointer + 1] = (uint8_t)(value >> 8);
-    cpu_data->ram[pointer + 2] = (uint8_t)(value >> 16);
-    cpu_data->ram[pointer + 3] = (uint8_t)(value >> 24);
+void chip_ram_write_value24(ChipData *chip_data, uint32_t pointer, uint32_t value) {
+    if (pointer + 2 >= chip_data->ram_size) return;
+    chip_data->ram[pointer] = (uint8_t)value;
+    chip_data->ram[pointer + 1] = (uint8_t)(value >> 8);
+    chip_data->ram[pointer + 2] = (uint8_t)(value >> 16);
 }
 
-int init_cpu_sub(CpuData *cpu_data) {
+void chip_ram_write_value32(ChipData *chip_data, uint32_t pointer, uint32_t value) {
+    if (pointer + 3 >= chip_data->ram_size) return;
+    chip_data->ram[pointer] = (uint8_t)value;
+    chip_data->ram[pointer + 1] = (uint8_t)(value >> 8);
+    chip_data->ram[pointer + 2] = (uint8_t)(value >> 16);
+    chip_data->ram[pointer + 3] = (uint8_t)(value >> 24);
+}
+
+int init_chip_sub(ChipData *chip_data) {
     char ram_size_str[32];
 
     printf("Enter allocated RAM size (bytes, for 16 KiB use '16k'): ");
@@ -138,39 +146,45 @@ int init_cpu_sub(CpuData *cpu_data) {
         return 1;
     }
 
-    cpu_data->ram_size = ram_size;
-    cpu_data->ram = malloc(ram_size);
-    if (cpu_data->ram == NULL) {
+    chip_data->ram_size = ram_size;
+    chip_data->ram = calloc(ram_size, 1);
+    if (chip_data->ram == NULL) {
         printf("Failed to allocate RAM memory.\n");
         return 1;
     }
 
-    cpu_data->pc = 0;
-    cpu_data->sp = 0;
-    cpu_data->running = true;
-    cpu_data->interrupts_enabled = false;
+    chip_data->pc = 0;
+    chip_data->sp = 0;
+    chip_data->running = true;
+    chip_data->interrupts_enabled = false;
 
     return 0;
 }
 
-void free_cpu_sub(CpuData *cpu_data) {
-    free(cpu_data->ram);
+void free_chip_sub(ChipData *chip_data) {
+    free(chip_data->ram);
 }
 
-int cpu_tick(CpuData *cpu_data) {
-    if (cpu_data->pc >= cpu_data->ram_size) {
+int chip_tick(ChipData *chip_data, bool dump_instruction) {
+    if (chip_data->pc >= chip_data->ram_size) {
         printf("PC out of bounds!\n");
-        cpu_data->running = false;
-        return 1;
+        chip_data->pc = 0;
+        return 0;
     }
 
-    uint32_t pc = cpu_data->pc;
-    uint8_t inst = cpu_data->ram[pc];
+    uint32_t pc = chip_data->pc;
+    uint8_t inst = chip_data->ram[pc];
 
     switch (inst) {
+        case INST_NOP:
+            printf("0x%08x: nop\n", pc);
+
+            chip_data->pc++;
+            break;
+        
         default:
             printf("Invalid instruction 0x%02x at PC 0x%08x\n", inst, pc);
-            cpu_data->running = false;
+            chip_data->running = false;
             return 1;
     }
 
@@ -179,31 +193,31 @@ int cpu_tick(CpuData *cpu_data) {
 
 int main() {
 
-    // Init CPU data
+    // Init chip data
 
-    CpuData *cpu_data = malloc(sizeof(CpuData));
-    if (cpu_data == NULL) {
-        printf("Failed to allocate CPU data.");
+    ChipData *chip_data = malloc(sizeof(ChipData));
+    if (chip_data == NULL) {
+        printf("Failed to allocate chip data.");
         return 1;
     }
 
-    int init_cpu_sub_error_code = init_cpu_sub(cpu_data);
+    int init_chip_sub_error_code = init_chip_sub(chip_data);
 
-    if (init_cpu_sub_error_code != 0) {
-        free(cpu_data);
-        return init_cpu_sub_error_code;
+    if (init_chip_sub_error_code != 0) {
+        free(chip_data);
+        return init_chip_sub_error_code;
     }
 
-    while (cpu_data->running) {
-        if (cpu_tick(cpu_data) != 0) {
+    while (chip_data->running) {
+        if (chip_tick(chip_data, true) != 0) {
             break; 
         }
     }
 
-    // Free CPU data
+    // Free chip data
 
-    free_cpu_sub(cpu_data);
-    free(cpu_data);
+    free_chip_sub(chip_data);
+    free(chip_data);
 
     return 0;
 }
