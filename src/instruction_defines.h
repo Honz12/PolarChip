@@ -2,6 +2,8 @@
 
 #define INST_NOP 0x00
 #define INST_RET 0x01
+#define INST_CALL 0x02
+#define INST_INT 0x03
 
 #define INST_LDI8 0x04
 #define INST_LDI16 0x05

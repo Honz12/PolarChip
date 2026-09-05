@@ -1,6 +1,7 @@
-#include <stdlib.h>
+#include <time.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include "instruction_defines.h"
 
@@ -58,6 +59,13 @@ void format_data_size_to_str(char *buffer, int buffer_size, uint32_t data_size) 
     }
 }
 
+double get_current_time_seconds(void) {
+    struct timespec ts;
+    // CLOCK_MONOTONIC is immune to system time changes (NTP syncs, etc.)
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + (double)ts.tv_nsec / 1e9;
+}
+
 typedef struct {
     uint32_t qmem[256];
 
@@ -69,6 +77,8 @@ typedef struct {
 
     bool running;
     bool interrupts_enabled;
+
+    uint64_t ips_count;
 } ChipData;
 
 void dump_chip_data(ChipData *chip_data) {
@@ -167,7 +177,7 @@ void free_chip_sub(ChipData *chip_data) {
 
 int chip_tick(ChipData *chip_data, bool dump_instruction) {
     if (chip_data->pc >= chip_data->ram_size) {
-        printf("PC out of bounds!\n");
+        //printf("PC out of bounds!\n");
         chip_data->pc = 0;
         return 0;
     }
@@ -177,7 +187,7 @@ int chip_tick(ChipData *chip_data, bool dump_instruction) {
 
     switch (inst) {
         case INST_NOP:
-            printf("0x%08x: nop\n", pc);
+            if (dump_instruction) { printf("0x%08x: nop\n", pc); }
 
             chip_data->pc++;
             break;
@@ -208,9 +218,37 @@ int main() {
         return init_chip_sub_error_code;
     }
 
+    double last_time = get_current_time_seconds();
+    uint64_t last_ips_count = 0;
+
     while (chip_data->running) {
-        if (chip_tick(chip_data, true) != 0) {
-            break; 
+        if (chip_tick(chip_data, false) != 0) {
+            break;
+        }
+
+        chip_data->ips_count++;
+
+        // 3. Check elapsed time to calculate IPS (e.g., every 1 second)
+        double current_time = get_current_time_seconds();
+        double elapsed = current_time - last_time;
+
+        if (elapsed >= 1.0) {
+            // Calculate how many instructions passed since the last check
+            uint64_t diff = chip_data->ips_count - last_ips_count;
+            double ips = (double)diff / elapsed;
+
+            // Format human-readable IPS output
+            if (ips >= 1e6) {
+                printf("Performance: %.2f MIPS (Million Instructions Per Second)\n", ips / 1e6);
+            } else if (ips >= 1e3) {
+                printf("Performance: %.2f kIPS (Kilo Instructions Per Second)\n", ips / 1e3);
+            } else {
+                printf("Performance: %.0f IPS\n", ips);
+            }
+
+            // Reset checkpoints
+            last_time = current_time;
+            last_ips_count = chip_data->ips_count;
         }
     }
 
